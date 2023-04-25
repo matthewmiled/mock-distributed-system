@@ -1,0 +1,37 @@
+{
+    "family": "mock-distributed-system-task",
+    "taskRoleArn": "ecsTaskExecutionRole",
+    "executionRoleArn": "ecsTaskExecutionRole",
+    "networkMode": "bridge",
+    "containerDefinitions": [
+        {
+            "name": "mock-distributed-system-container",
+            "image": "707768507475.dkr.ecr.us-west-2.amazonaws.com/mock-distributed-system:latest",
+            "essential": true,
+            "environment": [
+                {
+                    "name": "ENV_VAR_1",
+                    "value": "<PULL_ENV_VAR_1>"
+                },
+                {
+                    "name": "ENV_VAR_2",
+                    "value": "<PULL_ENV_VAR_1>"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/mock-distributed-system-task",
+                    "awslogs-region": "us-west-2",
+                    "awslogs-create-group": "true",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            }
+        }
+    ],
+    "requiresCompatibilities": [
+        "EC2"
+    ],
+    "cpu": "256",
+    "memory": "400"
+}

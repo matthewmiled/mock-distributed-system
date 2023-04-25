@@ -1,0 +1,80 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+
+env:
+  ECR_REPOSITORY: mock-distributed-system
+  ECS_CLUSTER: mmiles-cluster-ecs
+  ECS_SERVICE: mock-distributed-system-service
+  ECS_TASK_DEFINITION: task-definition.json
+  ECS_TASK_DEFINITION_NAME: mock-distributed-system-task
+  CONTAINER_NAME: mock-distributed-system-container
+
+jobs:
+
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+
+      run: |
+        # Build a docker container and
+        # push it to ECR so that it can
+        # be deployed to ECS.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY
+        echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+    - name: Import secret environment variables into task def
+      env:
+        ENV_VAR_1: ${{ secrets.SECRET_1 }}
+        ENV_VAR_2: ${{ secrets.SECRET_2 }}
+      run: |
+        sed -i "s/<PULL_ENV_VAR_1>/$ENV_VAR_1/g" "$ECS_TASK_DEFINITION"
+        sed -i "s/<PULL_ENV_VAR_2>/$ENV_VAR_2/g" "$ECS_TASK_DEFINITION"
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        cluster: $ECS_CLUSTER
+        service: $ECS_SERVICE
+        wait-for-service-stability: true
+
+    - name: Get new task definition revision and remove old one
+      run: |
+        TASK_REVISION=$(aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION_NAME }} --query taskDefinition.revision)
+        PREVIOUS_TASK_REVISION=$(($TASK_REVISION-1))
+        sed -i "s/REVISION/$TASK_REVISION/g" "$SCHEDULED_TASK"
+        aws ecs deregister-task-definition --task-definition $ECS_TASK_DEFINITION_NAME:$PREVIOUS_TASK_REVISION
+

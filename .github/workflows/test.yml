@@ -1,0 +1,32 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - '**'
+
+env:
+  ENV_VAR_1: ${{ secrets.SECRET_1 }}
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.10
+
+    - name: Install dependencies
+      run: |
+        pip install pipenv
+        pipenv install
+
+    - name: Run tests
+      run: |
+        pipenv run python -m pytest

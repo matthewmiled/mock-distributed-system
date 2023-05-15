@@ -11,6 +11,8 @@ docker run -p 8080:8080 test-mock-dist
 
 https://aws.amazon.com/getting-started/guides/deploy-webapp-ecs/
 
+https://towardsthecloud.com/amazon-ecs-execute-command-access-container#1_Verify_if_ECS_Exec_is_enabled_on_an_ECS_task
+
 ```commandline
 aws ecs list-task-definitions
 aws ecs list-clusters

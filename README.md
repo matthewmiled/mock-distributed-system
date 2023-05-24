@@ -54,4 +54,4 @@ aws ecs execute-command --cluster <cluster-name> \
 * For this, we will need to set up NGINX or load balancer?
   - https://medium.com/@prithvishetty/deploying-multiple-python-3-flask-apps-to-aws-using-nginx-d78e9477f96d
 
-*
+* Looks like to run a flask app in a ECS task/container - need to set up an Application Load Balancer in the ECS Service. Need to play around with this in order to get the ports set up correctly etc.
